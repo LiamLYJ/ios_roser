@@ -1,0 +1,10 @@
+.vscode
+build/
+
+boost/
+libboost.a
+
+lib/
+xcuserdata/
+
+opencv2.framework
