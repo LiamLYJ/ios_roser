@@ -10,5 +10,7 @@ import AVFoundation
 
 protocol SensorSettingDelegate: NSObjectProtocol {
     func configPreview(captureSession: AVCaptureSession)
+    func updateInfo(info: String)
+    func updateGps(info: String)
 }
 

@@ -13,12 +13,24 @@ final class ViewController: UIViewController {
     @IBOutlet weak var sensorBtn: UIButton!
     @IBOutlet weak var settingBtn: UIButton!
     @IBOutlet weak var recordBtn: UIButton!
+    @IBOutlet weak var infoLabel: UILabel!
+    @IBOutlet weak var gpsSign: UILabel!
+    @IBOutlet weak var recordSign: UILabel!
     
     @IBOutlet weak var preview: AVPreview!
     
     private var sensorSettingVC: SensorSettingVC!
-    private var is_sensor_on: Bool = false
-    private var is_setting_on: Bool = false
+    private var isSensorOn: Bool = false
+    private var isSettingOn: Bool = false {
+        didSet {
+            sensorSettingVC.view.isHidden = !isSettingOn
+        }
+    }
+    private var isRecordOn: Bool = false {
+        didSet {
+            recordSign.isHidden = !isRecordOn
+        }
+    }
     
     let videoDevice: AVCaptureDevice? = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .unspecified)
 
@@ -26,6 +38,7 @@ final class ViewController: UIViewController {
         super.viewDidLoad()
         
         sensorSettingVC.sensorSettingDelegate = self
+        recordSign.isHidden = true
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -36,28 +49,36 @@ final class ViewController: UIViewController {
     }
     
     @IBAction func toggleSensor(_ sender: Any) {
-        if (!is_sensor_on) {
+        if (!isSensorOn) {
             sensorSettingVC.startSenor()
             sensorBtn.setTitle("Stop", for: .normal)
-            is_sensor_on = true
+            isSensorOn = true
         } else {
             sensorSettingVC.stopSenor()
-            is_sensor_on = false
             sensorBtn.setTitle("Sensor", for: .normal)
+            isSensorOn = false
         }
     }
     
     @IBAction func toggleSetting(_ sender: Any) {
-        if (!is_setting_on) {
-            
-            is_setting_on = true
-            sensorSettingVC.view.isHidden = false
+        if (!isSettingOn) {
+            isSettingOn = true
         } else {
-            is_setting_on = false
-            sensorSettingVC.view.isHidden = true
+            isSettingOn = false
         }
     }
     
+    @IBAction func toggleRecord(_ sender: Any) {
+        if (!isRecordOn) {
+            sensorSettingVC.openRecording()
+            recordBtn.setTitle("Stop", for: .normal)
+            isRecordOn = true
+        } else {
+            sensorSettingVC.closeRecording()
+            recordBtn.setTitle("Record", for: .normal)
+            isRecordOn = false
+        }
+    }
 }
 
 extension ViewController: SensorSettingDelegate {
@@ -72,4 +93,13 @@ extension ViewController: SensorSettingDelegate {
             preview.videoPreviewLayer.connection?.videoOrientation = initialVideoOrientation
         }
     }
+    
+    func updateInfo(info: String) {
+        infoLabel.text = info
+    }
+    
+    func updateGps(info: String) {
+        gpsSign.text = info
+    }
+
 }
