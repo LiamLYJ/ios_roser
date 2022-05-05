@@ -119,10 +119,19 @@ final class SensorSettingVC: UIViewController {
     }
     
     @IBAction func touchReplay(_ sender: Any) {
-        let story = UIStoryboard(name: "Main", bundle: nil)
-        let add: ReplayVC = story.instantiateViewController(withIdentifier: "ReplayVC") as! ReplayVC
-        add.filename = selectedFile
-        present(add, animated: false)
+        if selectedFile == "" {
+            let alert = UIAlertController(title: "no file recored", message: "error!", preferredStyle: .alert)
+            present(alert, animated: true, completion: nil)
+            let when = DispatchTime.now() + 2
+            DispatchQueue.main.asyncAfter(deadline: when){
+                alert.dismiss(animated: true, completion: nil)
+            }
+        } else {
+            let story = UIStoryboard(name: "Main", bundle: nil)
+            let add: ReplayVC = story.instantiateViewController(withIdentifier: "ReplayVC") as! ReplayVC
+            add.filename = selectedFile
+            present(add, animated: false)
+        }
     }
     
     private func loadBefore() {
@@ -423,7 +432,7 @@ final class SensorSettingVC: UIViewController {
 //                hasFile = true
                 break
             }
-            print("file: \(directoryContent[i+1])")
+//            print("file: \(directoryContent[i+1])")
         }
         fileListData = directoryContent
         fileList.reloadAllComponents()
@@ -456,7 +465,7 @@ final class SensorSettingVC: UIViewController {
             let timeString = formatter.string(from: Date()) + ".bag"
             let fn = dirPaths[0].stringByAppendingPathComponent(path: timeString)
 //            print("filename: \(fn)\n")
-            self.publisher.open(fn)
+            self.publisher.open(fn, isWrite: true)
             self.isRecordingBag = true
         }
     }
@@ -627,7 +636,9 @@ extension SensorSettingVC: UIPickerViewDelegate {
     func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         if row < fileListData.count {
             selectedFile = fileListData[row]
-            let info = publisher.getInfo(selectedFile)
+            let dirPaths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
+            let fullAddr = dirPaths[0].stringByAppendingPathComponent(path: selectedFile)
+            let info = publisher.getInfo(fullAddr)
             sensorSettingDelegate?.updateInfo(info: info)
         }
     }

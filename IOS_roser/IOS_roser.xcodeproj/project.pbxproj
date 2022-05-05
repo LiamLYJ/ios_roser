@@ -33,7 +33,6 @@
 		2CB77F3E281FE899004457C0 /* libcpp_common.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2CB77F33281FE899004457C0 /* libcpp_common.a */; };
 		2CB77F3F281FE899004457C0 /* librostime.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2CB77F34281FE899004457C0 /* librostime.a */; };
 		2CB77F40281FE899004457C0 /* libboost.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2CB77F35281FE899004457C0 /* libboost.a */; };
-		2CC7C87B2821220C0093A9AB /* cv_wrapper.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2CC7C87A2821220C0093A9AB /* cv_wrapper.mm */; };
 		2CC7C87D282125EA0093A9AB /* opencv2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2CC7C87C282125EA0093A9AB /* opencv2.framework */; };
 		2CC7C88028213D4E0093A9AB /* Publisher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2CC7C87F28213D4E0093A9AB /* Publisher.mm */; };
 /* End PBXBuildFile section */
@@ -67,12 +66,10 @@
 		2CB77F33281FE899004457C0 /* libcpp_common.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcpp_common.a; path = ../lib/libcpp_common.a; sourceTree = "<group>"; };
 		2CB77F34281FE899004457C0 /* librostime.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = librostime.a; path = ../lib/librostime.a; sourceTree = "<group>"; };
 		2CB77F35281FE899004457C0 /* libboost.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libboost.a; path = ../lib/libboost.a; sourceTree = "<group>"; };
-		2CC7C87A2821220C0093A9AB /* cv_wrapper.mm */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; path = cv_wrapper.mm; sourceTree = "<group>"; };
 		2CC7C87C282125EA0093A9AB /* opencv2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = opencv2.framework; path = ../thirdparty/opencv/opencv2.framework; sourceTree = "<group>"; };
-		2CC7C87E282127530093A9AB /* cv_wrapper.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = cv_wrapper.h; sourceTree = "<group>"; };
-		2CC7C87F28213D4E0093A9AB /* Publisher.mm */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; path = Publisher.mm; sourceTree = "<group>"; };
-		2CC7C88128213D7A0093A9AB /* Publisher.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; path = Publisher.h; sourceTree = "<group>"; };
-		2CC7C8822821419B0093A9AB /* bridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = bridge.h; sourceTree = "<group>"; };
+		2CC7C87F28213D4E0093A9AB /* Publisher.mm */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp.preprocessed; path = Publisher.mm; sourceTree = "<group>"; };
+		2CC7C88128213D7A0093A9AB /* Publisher.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = Publisher.h; sourceTree = "<group>"; };
+		2CC7C8822821419B0093A9AB /* bridge.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = bridge.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -198,8 +195,6 @@
 		2CB77F26281EA7DC004457C0 /* Model */ = {
 			isa = PBXGroup;
 			children = (
-				2CC7C87A2821220C0093A9AB /* cv_wrapper.mm */,
-				2CC7C87E282127530093A9AB /* cv_wrapper.h */,
 				2CC7C87F28213D4E0093A9AB /* Publisher.mm */,
 				2CC7C88128213D7A0093A9AB /* Publisher.h */,
 			);
@@ -285,7 +280,6 @@
 				2CB77EE7281981EA004457C0 /* SceneDelegate.swift in Sources */,
 				2CB77F2A281FDF90004457C0 /* ReplayVC.swift in Sources */,
 				2CB77F1E281D35D1004457C0 /* SensorSettingDelegate.swift in Sources */,
-				2CC7C87B2821220C0093A9AB /* cv_wrapper.mm in Sources */,
 				2CB77F25281D6CDB004457C0 /* Extension.swift in Sources */,
 				2CB77F21281D3F63004457C0 /* AVPreview.swift in Sources */,
 			);
@@ -440,6 +434,7 @@
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/../thirdparty/**";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_INPUT_FILETYPE = automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"\"$(SRCROOT)/../include\"",
@@ -485,6 +480,7 @@
 				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/../thirdparty/**";
 				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_INPUT_FILETYPE = automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"\"$(SRCROOT)/../include\"",

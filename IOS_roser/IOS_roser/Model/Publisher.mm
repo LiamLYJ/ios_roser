@@ -16,9 +16,9 @@
 #include <sensor_msgs/NavSatFix.h>
 #include "rosbag/view.h"
 #include <opencv2/opencv.hpp>
+#import  <opencv2/imgcodecs/ios.h>
 
 #import "Publisher.h"
-#import "cv_wrapper.h"
 
 #import <Foundation/Foundation.h>
 
@@ -110,7 +110,8 @@ void gps84_To_Gcj02(double& lat, double& lon) {
  
 - (void) publishImg:(UIImage* _Nonnull) img timestamp:(double) timestamp topic:(NSString* _Nonnull) topic imgCount:(uint32_t) imgCount {
     
-    cv::Mat img_cv = [cv_wrapper cvMatFromUIImage:img];
+    cv::Mat img_cv;
+    UIImageToMat(img, img_cv);
     sensor_msgs::CompressedImage img_ros_img;
     //cv::Mat img_gray;
     //cv::cvtColor(img_cv, img_gray, CV_BGRA2GRAY);
@@ -129,42 +130,34 @@ void gps84_To_Gcj02(double& lat, double& lon) {
 }
 
 - (NSString* _Nonnull) getInfo:(NSString* _Nonnull) filename {
-    NSArray *dirPaths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSArray *directoryContent = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:[dirPaths objectAtIndex:0] error:NULL];
-    
     std::map<std::string, int> re_dict;
     double start_time = 0;
     double end_time = 0;
-    for (int count = 0; count < (int)[directoryContent count]; count++)
-    {
-        NSString *full_addr = [[dirPaths objectAtIndex:0] stringByAppendingPathComponent:[directoryContent objectAtIndex:count]];
-        if([filename isEqualToString:[directoryContent objectAtIndex:count]]==YES){
-            rosbag::Bag bag;
-            try{
-                bag.open(std::string([full_addr UTF8String]).c_str(), rosbag::bagmode::Read);
-            }
-            catch (...){
-                return @"bad bag, unknown!";
-            }
-            if(!bag.isOpen()){
-                return @"bad bag not open!";
-            }
-            rosbag::View view(bag);
-            start_time = view.getBeginTime().toSec();
-            end_time = view.getEndTime().toSec();
-            rosbag::View::iterator it= view.begin();
-            for(;it!=view.end();it++){
-                rosbag::MessageInstance m =*it;
-                if (re_dict.count(m.getTopic())==0){
-                    re_dict[m.getTopic()]=1;
-                }else{
-                    re_dict[m.getTopic()]=re_dict[m.getTopic()]+1;
-                }
-            }
-            bag.close();
-            break;
+    
+    rosbag::Bag bag;
+    try{
+        bag.open(std::string([filename UTF8String]).c_str(), rosbag::bagmode::Read);
+    }
+    catch (...){
+        return @"bad bag, unknown!";
+    }
+    if(!bag.isOpen()){
+        return @"bad bag not open!";
+    }
+    rosbag::View view(bag);
+    start_time = view.getBeginTime().toSec();
+    end_time = view.getEndTime().toSec();
+    rosbag::View::iterator it= view.begin();
+    for(;it!=view.end();it++){
+        rosbag::MessageInstance m =*it;
+        if (re_dict.count(m.getTopic())==0){
+            re_dict[m.getTopic()]=1;
+        }else{
+            re_dict[m.getTopic()]=re_dict[m.getTopic()]+1;
         }
     }
+    bag.close();
+            
     std::stringstream ss;
     for(std::map<std::string, int>::iterator it=re_dict.begin(); it!=re_dict.end(); it++){
         ss<<it->first<<": "<<it->second<<std::endl;
@@ -172,13 +165,107 @@ void gps84_To_Gcj02(double& lat, double& lon) {
     ss<<"duration: "<<end_time-start_time<<"s";
     NSString *string1 = [NSString stringWithCString:ss.str().c_str() encoding:[NSString defaultCStringEncoding]];
     return string1;
+}
 
+- (void) getFrameInfo: (double* _Nonnull) imgRate imgCount:(uint32_t* _Nonnull) imgCount imuTopic:(NSString** _Nonnull) imuTopic imgTopic:(NSString** _Nonnull) imgTopic gpsTopic:(NSString** _Nonnull) gpsTopic {
+    
+    assert(bag_ptr->isOpen());
+    rosbag::View view(*bag_ptr);
+    rosbag::View::iterator it= view.begin();
+    for(;it!=view.end();it++){
+        if([*imgTopic isEqual:@""]){
+            rosbag::MessageInstance m =*it;
+            if(m.getDataType()=="sensor_msgs/CompressedImage"){
+                std::string str = m.getTopic();
+                *imgTopic = [NSString stringWithCString:str.c_str() encoding:[NSString defaultCStringEncoding]];
+            }
+        }
+        if([*imuTopic isEqual:@""]){
+            rosbag::MessageInstance m =*it;
+            if(m.getDataType()=="sensor_msgs/Imu"){
+                std::string str = m.getTopic();
+                *imuTopic = [NSString stringWithCString:str.c_str() encoding:[NSString defaultCStringEncoding]];
+            }
+        }
+        if([*gpsTopic isEqual:@""]){
+            rosbag::MessageInstance m =*it;
+            if(m.getDataType()=="sensor_msgs/NavSatFix"){
+                std::string str = m.getTopic();
+                *gpsTopic = [NSString stringWithCString:str.c_str() encoding:[NSString defaultCStringEncoding]];
+            }
+            sensor_msgs::NavSatFixPtr s = m.instantiate<sensor_msgs::NavSatFix>();
+        }
+        if([*gpsTopic isEqual:@""] && [*imuTopic isEqual:@""] && [*imgTopic isEqual:@""]){
+            return;
+        }
+    }
+
+    std::vector<std::string> topics;
+    std::string str = std::string([*imgTopic UTF8String]);
+    topics.push_back(str);
+    rosbag::View view_img(*bag_ptr, rosbag::TopicQuery(topics));
+    uint32_t count=0;
+    rosbag::View::iterator it_img= view_img.begin();
+    for(;it_img!=view_img.end();it_img++){
+        count++;
+    }
+    *imgRate = (view_img.getEndTime().toSec()-view_img.getBeginTime().toSec())/(count-1);
+    *imgCount = count;
 }
     
-- (void) open: (NSString* _Nonnull) filename {
+-(UIImage*) getFrame:(uint32_t) frame_id topic:(NSString* _Nonnull) topic timestamp:(double* ) timestamp {
+    UIImage *ui_image;
+    std::vector<std::string> topics;
+    std::string str = std::string([topic UTF8String]);
+    topics.push_back(str);
+    rosbag::View view(*bag_ptr, rosbag::TopicQuery(topics));
+    int img_count=0;
+    rosbag::View::iterator it= view.begin();
+    for(;it!=view.end();it++){
+        if(img_count==frame_id){
+            rosbag::MessageInstance m = *it;
+            sensor_msgs::CompressedImagePtr simg = m.instantiate<sensor_msgs::CompressedImage>();
+            cv::Mat_<uchar> in(1, simg->data.size(), const_cast<uchar*>(&simg->data[0]));
+            cv::Mat mat = cv::imdecode(in, cv::IMREAD_GRAYSCALE);
+            ui_image = MatToUIImage(mat);
+            *timestamp=simg->header.stamp.toSec();
+            break;
+        }
+        img_count++;
+    }
+    return ui_image;
+}
+
+-(void) getGps:(NSMutableArray*_Nonnull*) gpsData timestamps:(NSMutableArray*_Nonnull*) timestamps topic:(NSString* _Nonnull) topic {
+    std::vector<std::string> topics;
+    std::string str = std::string([topic UTF8String]);
+    topics.push_back(str);
+    rosbag::View view(*bag_ptr, rosbag::TopicQuery(topics));
+    rosbag::View::iterator it= view.begin();
+    for(;it!=view.end();it++){
+        rosbag::MessageInstance m = *it;
+        sensor_msgs::NavSatFixPtr sgps = m.instantiate<sensor_msgs::NavSatFix>();
+        double cur=sgps->header.stamp.toSec();
+        CLLocation *locat= [[CLLocation alloc] initWithLatitude:sgps->latitude longitude:sgps->longitude];
+        [*timestamps addObject:@(cur)];
+        [*gpsData addObject:locat];
+    }
+}
+
+- (void) open: (NSString* _Nonnull) filename isWrite:(bool) isWrite {
     bag_ptr.reset(new rosbag::Bag());
     const char *cString = [filename UTF8String];
-    bag_ptr->open(cString, rosbag::bagmode::Write);
+    if (isWrite) {
+        bag_ptr->open(cString, rosbag::bagmode::Write);
+    } else {
+        try {
+            bag_ptr->open(cString, rosbag::bagmode::Read);
+        }
+        catch (...){
+            printf("some thing with read rosbag file!\n");
+            exit(0);
+        }
+    }
 }
 
 - (void) close {

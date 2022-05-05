@@ -89,7 +89,7 @@
                                                 <nil key="highlightedColor"/>
                                             </label>
                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="gps:" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="7Ke-BK-Dvq" userLabel="gps sign">
-                                                <rect key="frame" x="0.0" y="20.333333333333343" width="33" height="20.333333333333336"/>
+                                                <rect key="frame" x="0.0" y="20.333333333333336" width="33" height="20.333333333333336"/>
                                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                                 <nil key="textColor"/>
                                                 <nil key="highlightedColor"/>
@@ -644,6 +644,9 @@
                                 <fontDescription key="fontDescription" type="system" pointSize="25"/>
                                 <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
                                 <state key="normal" title="Play"/>
+                                <connections>
+                                    <action selector="touchPlay:" destination="h9I-bL-7Xu" eventType="touchUpInside" id="cHy-Oj-1ZV"/>
+                                </connections>
                             </button>
                             <mapView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" mapType="standard" translatesAutoresizingMaskIntoConstraints="NO" id="PyY-DB-OIK">
                                 <rect key="frame" x="64" y="20" width="400" height="329"/>
@@ -660,10 +663,10 @@
                             <slider opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" minValue="0.0" maxValue="1" translatesAutoresizingMaskIntoConstraints="NO" id="NYZ-ln-SCt" userLabel="Slider bar">
                                 <rect key="frame" x="504" y="202" width="257" height="31"/>
                                 <color key="tintColor" red="0.70805226369999996" green="0.96276945869999997" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <connections>
+                                    <action selector="changeSlider:" destination="h9I-bL-7Xu" eventType="valueChanged" id="mgW-fz-DO5"/>
+                                </connections>
                             </slider>
-                            <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" contentHorizontalAlignment="center" contentVerticalAlignment="center" on="YES" translatesAutoresizingMaskIntoConstraints="NO" id="f01-TI-RcJ" userLabel="Spped Switch">
-                                <rect key="frame" x="543" y="273" width="51" height="31"/>
-                            </switch>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="xjc-BD-w5Y"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
@@ -675,10 +678,8 @@
                             <constraint firstItem="NYZ-ln-SCt" firstAttribute="leading" secondItem="PyY-DB-OIK" secondAttribute="trailing" constant="42" id="CQd-Aa-cQc"/>
                             <constraint firstItem="xjc-BD-w5Y" firstAttribute="bottom" secondItem="G97-kg-AXw" secondAttribute="bottom" constant="60" id="Dtl-pe-vhi"/>
                             <constraint firstItem="aoY-rE-cgH" firstAttribute="leading" secondItem="PyY-DB-OIK" secondAttribute="trailing" constant="30" id="FSx-Wh-bG9"/>
-                            <constraint firstItem="xjc-BD-w5Y" firstAttribute="bottom" secondItem="f01-TI-RcJ" secondAttribute="bottom" constant="65" id="JYn-Mi-46Q"/>
                             <constraint firstItem="G97-kg-AXw" firstAttribute="leading" secondItem="PyY-DB-OIK" secondAttribute="trailing" constant="25" id="KdU-rA-YsA"/>
                             <constraint firstItem="nUK-aG-yQz" firstAttribute="bottom" secondItem="xjc-BD-w5Y" secondAttribute="bottom" id="Uwr-vx-MLX"/>
-                            <constraint firstItem="f01-TI-RcJ" firstAttribute="leading" secondItem="G97-kg-AXw" secondAttribute="trailing" constant="8" symbolic="YES" id="ar4-y9-XqZ"/>
                             <constraint firstItem="xjc-BD-w5Y" firstAttribute="trailing" secondItem="nUK-aG-yQz" secondAttribute="trailing" constant="20" id="gsB-9E-gPw"/>
                             <constraint firstItem="xjc-BD-w5Y" firstAttribute="bottom" secondItem="PyY-DB-OIK" secondAttribute="bottom" constant="20" id="qL4-eg-fZ9"/>
                             <constraint firstItem="xjc-BD-w5Y" firstAttribute="trailing" secondItem="NYZ-ln-SCt" secondAttribute="trailing" constant="41" id="wNU-Xv-h5K"/>
@@ -686,6 +687,12 @@
                         </constraints>
                     </view>
                     <navigationItem key="navigationItem" id="fy1-gO-WLe"/>
+                    <connections>
+                        <outlet property="imageView" destination="aoY-rE-cgH" id="IbK-EU-Mae"/>
+                        <outlet property="mapView" destination="PyY-DB-OIK" id="1Iw-ZC-q04"/>
+                        <outlet property="playBar" destination="NYZ-ln-SCt" id="bhA-Xo-dfa"/>
+                        <outlet property="playBtn" destination="G97-kg-AXw" id="59T-VG-SrD"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="m4q-F0-vO2" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
