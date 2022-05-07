@@ -25,7 +25,11 @@
 
 @implementation Publisher
 
-std::shared_ptr<rosbag::Bag> bag_ptr;
+std::shared_ptr<rosbag::Bag> bag_ptr = std::shared_ptr<rosbag::Bag>(new rosbag::Bag());
+ros::Publisher img_pub;
+ros::Publisher imu_pub;
+ros::Publisher gps_pub;
+bool _need_publishing;
 
 // GPS process
 double pi = 3.1415926535897932384626;
@@ -70,6 +74,10 @@ void gps84_To_Gcj02(double& lat, double& lon) {
     lon = lon + dLon;
 }
 
+- (void) setNeedPublishing: (bool) needPublishing {
+    _need_publishing = needPublishing;
+}
+
 - (void) publishGps:(CLLocation* _Nonnull) data topic:(NSString* _Nonnull) topic timestamp:(double) timestamp gpsCount:(uint32_t) gpsCount{
     sensor_msgs::NavSatFix msg;
     msg.latitude = data.coordinate.latitude;
@@ -82,7 +90,9 @@ void gps84_To_Gcj02(double& lat, double& lon) {
     msg.header.seq = gpsCount;
     msg.header.stamp = ros::Time(timestamp);
     msg.header.frame_id="map";
-    
+    if (_need_publishing) {
+        gps_pub.publish(msg);
+    }
     if(bag_ptr->isOpen()){
         NSDate * t1 = [NSDate date];
         NSTimeInterval now = [t1 timeIntervalSince1970];
@@ -101,6 +111,9 @@ void gps84_To_Gcj02(double& lat, double& lon) {
     msg.header.seq = data.header_seq;
     msg.header.frame_id = "map";
     msg.header.stamp = ros::Time(data.timestamp);
+    if (_need_publishing) {
+        imu_pub.publish(msg);
+    }
     if (bag_ptr->isOpen()) {
         NSDate * t1 = [NSDate date];
         NSTimeInterval now = [t1 timeIntervalSince1970];
@@ -121,6 +134,9 @@ void gps84_To_Gcj02(double& lat, double& lon) {
     img_ros_img.header.seq = imgCount;
     img_ros_img.header.stamp = ros::Time(timestamp);
     img_ros_img.format="jpeg";
+    if (_need_publishing) {
+        img_pub.publish(img_ros_img);
+    }
     if(bag_ptr->isOpen()) {
         NSDate * t1 = [NSDate date];
         NSTimeInterval now = [t1 timeIntervalSince1970];
@@ -270,6 +286,43 @@ void gps84_To_Gcj02(double& lat, double& lon) {
 
 - (void) close {
     bag_ptr->close();
+}
+
+- (bool) connectMaster:(NSString* _Nonnull) masterIp selfIp:(NSString* _Nonnull) selfIp camTopic:(NSString* _Nonnull) camTopic imuTopic:(NSString* _Nonnull) imuTopic gpsTopic:(NSString* _Nonnull) gpsTopic {
+    NSString * master_uri = [@"ROS_MASTER_URI=http://" stringByAppendingString:[masterIp stringByAppendingString:@":11311/"]];
+    NSLog(@"%@",master_uri);
+    NSString * ip = [@"ROS_IP=" stringByAppendingString:selfIp];
+    NSLog(@"%@",ip);
+    putenv((char *)[master_uri UTF8String]);
+    putenv((char *)[ip UTF8String]);
+    putenv((char *)"ROS_HOME=/tmp");
+    
+    bool suc = false;
+    int argc = 0;
+    char ** argv = NULL;
+    if(!ros::isInitialized())
+    {
+        ros::init(argc,argv,"ios_roser");
+        if(ros::master::check())
+        {
+            printf("Connected to the ROS master !\n");
+            ros::NodeHandle nn;
+            imu_pub = nn.advertise<sensor_msgs::Imu>((char *)[imuTopic UTF8String], 10000, false);
+            img_pub = nn.advertise<sensor_msgs::CompressedImage>((char *)[camTopic UTF8String], 10000, false);
+            gps_pub = nn.advertise<sensor_msgs::NavSatFix>((char *)[gpsTopic UTF8String], 10000, false);
+            suc = true;
+        }
+        else
+        {
+            printf("ROS master check failed\n");
+            
+        }
+    }
+    else {
+        printf("ROS already initialised. Can't change the ROS_MASTER_URI\n");
+    }
+                             
+    return suc;
 }
 
 @end

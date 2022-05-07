@@ -13,9 +13,13 @@ final class ViewController: UIViewController {
     @IBOutlet weak var sensorBtn: UIButton!
     @IBOutlet weak var settingBtn: UIButton!
     @IBOutlet weak var recordBtn: UIButton!
+    @IBOutlet weak var publishBtn: UIButton!
+    @IBOutlet weak var connectBtn: UIButton!
     @IBOutlet weak var infoLabel: UILabel!
     @IBOutlet weak var gpsSign: UILabel!
     @IBOutlet weak var recordSign: UILabel!
+    @IBOutlet weak var publishSign: UILabel!
+    @IBOutlet weak var connectSign: UILabel!
     
     @IBOutlet weak var preview: AVPreview!
     
@@ -31,6 +35,16 @@ final class ViewController: UIViewController {
             recordSign.isHidden = !isRecordOn
         }
     }
+    private var isPublishOn: Bool = false {
+        didSet {
+            publishSign.isHidden = !isPublishOn
+        }
+    }
+    private var isConnected: Bool = false {
+        didSet {
+            connectSign.isHidden = !isConnected
+        }
+    }
     
     let videoDevice: AVCaptureDevice? = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .unspecified)
 
@@ -39,6 +53,14 @@ final class ViewController: UIViewController {
         
         sensorSettingVC.sensorSettingDelegate = self
         recordSign.isHidden = true
+        publishSign.isHidden = true
+        connectSign.isHidden = true
+        
+        isSensorOn = false
+        isSensorOn = false
+        isRecordOn = false
+        isPublishOn = false
+        isConnected = false
     }
     
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
@@ -65,6 +87,25 @@ final class ViewController: UIViewController {
             isSettingOn = true
         } else {
             isSettingOn = false
+        }
+    }
+    
+    @IBAction func togglePublish(_ sender: Any) {
+        if (!isPublishOn) {
+            publishBtn.setTitle("Stop", for: .normal)
+            isPublishOn = true
+        } else {
+            publishBtn.setTitle("Publish", for: .normal)
+            isPublishOn = false
+        }
+        sensorSettingVC.setPublish(needPublishing: isPublishOn)
+    }
+    
+    @IBAction func touchConnect(_ sender: Any) {
+        isConnected = sensorSettingVC.connectToMaster()
+        if isConnected {
+            connectBtn.isUserInteractionEnabled = false
+            connectBtn.setTitleColor(UIColor.gray, for: .normal)
         }
     }
     

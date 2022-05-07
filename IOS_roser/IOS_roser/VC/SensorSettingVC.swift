@@ -10,6 +10,8 @@ import AVFoundation
 import Foundation
 import CoreMotion
 import CoreLocation
+import Network
+import SwiftUI
 
 private var lenPosCxt = 0
 private var shutterCxt = 0
@@ -38,7 +40,6 @@ final class SensorSettingVC: UIViewController {
     @IBOutlet weak var gpsTopic: UITextField!
     @IBOutlet weak var camTopic: UITextField!
     @IBOutlet weak var masterIP: UITextField!
-    @IBOutlet weak var clinetIP: UITextField!
     
     private var fileListData: [String] = []
     private var selectedFile: String = ""
@@ -75,6 +76,7 @@ final class SensorSettingVC: UIViewController {
     private var gpsCount: UInt32 = 0
     
     private var isRecordingBag: Bool = false
+    private var isPublishing: Bool = false
     private var syncSensorTime: Double = 0.0
     private var syncSysTime: Date = Date();
     
@@ -112,20 +114,9 @@ final class SensorSettingVC: UIViewController {
         updateBagList()
     }
     
-    @IBAction func touchUpAll(_ sender: Any) {
-    }
-    
-    @IBAction func touchUpOne(_ sender: Any) {
-    }
-    
     @IBAction func touchReplay(_ sender: Any) {
         if selectedFile == "" {
-            let alert = UIAlertController(title: "no file recored", message: "error!", preferredStyle: .alert)
-            present(alert, animated: true, completion: nil)
-            let when = DispatchTime.now() + 2
-            DispatchQueue.main.asyncAfter(deadline: when){
-                alert.dismiss(animated: true, completion: nil)
-            }
+            setupEasyOneWithDelay(title: "no file recorded", msg: "error!", delayToVanish: 2)
         } else {
             let story = UIStoryboard(name: "Main", bundle: nil)
             let add: ReplayVC = story.instantiateViewController(withIdentifier: "ReplayVC") as! ReplayVC
@@ -153,10 +144,6 @@ final class SensorSettingVC: UIViewController {
         if UserDefaults.standard.string(forKey: "master_ip") != nil {
             masterIP.text = UserDefaults.standard.string(forKey: "master_ip")
         }
-        if UserDefaults.standard.string(forKey: "clinet_ip") != nil {
-            clinetIP.text = UserDefaults.standard.string(forKey: "clinet_ip")
-        }
-        
         updateBagList()
     }
     
@@ -196,12 +183,7 @@ final class SensorSettingVC: UIViewController {
     @IBAction func changeImgHz(_ sender: Any) {
         let val = Int(imgHzText.text ?? "")
         guard let val = val else {
-            let alert = UIAlertController(title: "hz range need to be a number", message: "error!", preferredStyle: .alert)
-            present(alert, animated: true, completion: nil)
-            let when = DispatchTime.now() + 3
-            DispatchQueue.main.asyncAfter(deadline: when){
-                alert.dismiss(animated: true, completion: nil)
-            }
+            setupEasyOneWithDelay(title: "hz range need to be a number", msg: "error!", delayToVanish: 2)
             return
         }
         if val <= 30 && val >= 1 {
@@ -213,12 +195,7 @@ final class SensorSettingVC: UIViewController {
             videoDevice.unlockForConfiguration()
  
         } else {
-            let alert = UIAlertController(title: "hz range in 1-30", message: "error!", preferredStyle: .alert)
-            present(alert, animated: true, completion: nil)
-            let when = DispatchTime.now() + 3
-            DispatchQueue.main.asyncAfter(deadline: when){
-                alert.dismiss(animated: true, completion: nil)
-            }
+            setupEasyOneWithDelay(title: "hz range in 1-30", msg: "error!", delayToVanish: 2)
             return
         }
     }
@@ -227,7 +204,6 @@ final class SensorSettingVC: UIViewController {
         sender.resignFirstResponder()
         UserDefaults.standard.set(imgHzText.text, forKey: "cam_hz")
         UserDefaults.standard.set(masterIP.text, forKey: "master_ip")
-        UserDefaults.standard.set(clinetIP.text, forKey: "clinet_ip")
         UserDefaults.standard.set(imuTopic.text, forKey: "imu_topic")
         UserDefaults.standard.set(gpsTopic.text, forKey: "gps_topic")
         UserDefaults.standard.set(camTopic.text, forKey: "cam_topic")
@@ -422,6 +398,32 @@ final class SensorSettingVC: UIViewController {
         removeObservers()
     }
     
+    @IBAction func changeMasterIp(_ sender: Any) {
+        let ipString = masterIP.text!
+        if !ipString.validateIpAddress {
+            setupEasyOneWithDelay(title: "ip is not valid, plz input again", msg: "error!", delayToVanish: 2)
+            masterIP.text = "192.168.0.1"
+        }
+    }
+    
+    public func connectToMaster() -> Bool {
+        var suc = false
+        if let selfIp = getWifiIPAddress() {
+            suc = publisher.connectMaster(masterIP.text!, selfIp: selfIp, camTopic: camTopic.text!, imuTopic: imuTopic.text!, gpsTopic: gpsTopic.text!)
+        }
+        if suc {
+            masterIP.isUserInteractionEnabled = false
+        } else {
+            setupEasyOneWithDelay(title: "connect master failed!", msg: "error!", delayToVanish: 2)
+        }
+        return suc
+    }
+    
+    public func setPublish(needPublishing: Bool) {
+        isPublishing = needPublishing
+        publisher.setNeedPublishing(needPublishing)
+    }
+    
     private func updateBagList() {
         let dirPaths = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)
         let directoryContent = try! FileManager.default.contentsOfDirectory(atPath: dirPaths[0])
@@ -485,6 +487,31 @@ private extension SensorSettingVC {
         case CAMERA = 1
         case CONTROL = 2
     }
+    
+    func getWifiIPAddress() -> String? {
+        var address: String?
+        var ifaddr: UnsafeMutablePointer<ifaddrs>? = nil
+        if getifaddrs(&ifaddr) == 0 {
+            var ptr = ifaddr
+            while ptr != nil {
+                defer { ptr = ptr?.pointee.ifa_next }
+
+                guard let interface = ptr?.pointee else { return "" }
+                let addrFamily = interface.ifa_addr.pointee.sa_family
+                if addrFamily == UInt8(AF_INET) || addrFamily == UInt8(AF_INET6) {
+
+                    let name: String = String(cString: (interface.ifa_name))
+                    if  name == "en0" {
+                        var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+                        getnameinfo(interface.ifa_addr, socklen_t((interface.ifa_addr.pointee.sa_len)), &hostname, socklen_t(hostname.count), nil, socklen_t(0), NI_NUMERICHOST)
+                        address = String(cString: hostname)
+                    }
+                }
+            }
+            freeifaddrs(ifaddr)
+        }
+        return address
+    }
 }
 
 extension SensorSettingVC {
@@ -508,7 +535,7 @@ extension SensorSettingVC {
                     let timestamp = self.gyros[i].timestamp
                     let count = self.imuCount
                     let topic = self.imuTopic.text!
-                    if self.isRecordingBag {
+                    if self.isRecordingBag || self.isPublishing {
                         sessionQueue.async {
                             let imu_data = Imu_T(acc_x: acc_x, acc_y: acc_y, acc_z: acc_z, gyro_x: gyro_x, gyro_y: gyro_y, gyro_z: gyro_z, header_seq: count, timestamp: timestamp)
                             self.publisher.publishImu(imu_data, topic: topic)
@@ -572,7 +599,7 @@ extension SensorSettingVC {
 
 extension SensorSettingVC: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        guard imgSwitch.isOn && isRecordingBag else {
+        guard imgSwitch.isOn && (isRecordingBag || isPublishing) else {
             return
         }
         let topic = self.camTopic.text!
@@ -597,7 +624,7 @@ extension SensorSettingVC: CLLocationManagerDelegate {
         let timeChange = eventDate.timeIntervalSince(self.syncSysTime)
         let howRecent = timeChange + self.syncSensorTime
         
-        if self.isRecordingBag {
+        if self.isRecordingBag || self.isPublishing{
             sessionQueue.async {
                 self.publisher.publishGps(location, topic: self.gpsTopic.text!, timestamp: howRecent, gpsCount: self.gpsCount)
             }

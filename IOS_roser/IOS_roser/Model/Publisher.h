@@ -31,10 +31,12 @@ typedef struct {
 - (void) publishImg:(UIImage* _Nonnull) img timestamp:(double) timestamp topic:(NSString* _Nonnull) topic imgCount:(uint32_t) imgCount;
 - (NSString* _Nonnull) getInfo:(NSString* _Nonnull) filename;
 - (void) getFrameInfo: (double* _Nonnull) imgRate imgCount:(uint32_t* _Nonnull) imgCount imuTopic:(NSString** _Nonnull) imuTopic imgTopic:(NSString** _Nonnull) imgTopic gpsTopic:(NSString** _Nonnull) gpsTopic;
--(UIImage* _Nonnull) getFrame:(uint32_t) frameId topic:(NSString* _Nonnull) topic timestamp:(double* _Nonnull) timestamp;
--(void) getGps:(NSMutableArray*_Nonnull*) gpsData timestamps:(NSMutableArray*_Nonnull*) timestamps topic:(NSString* _Nonnull) topic;
+- (UIImage* _Nonnull) getFrame:(uint32_t) frameId topic:(NSString* _Nonnull) topic timestamp:(double* _Nonnull) timestamp;
+- (void) getGps:(NSMutableArray*_Nonnull*) gpsData timestamps:(NSMutableArray*_Nonnull*) timestamps topic:(NSString* _Nonnull) topic;
 - (void) open: (NSString* _Nonnull) filename isWrite:(bool) isWrite;
 - (void) close;
+- (bool) connectMaster:(NSString* _Nonnull) masterIp selfIp:(NSString* _Nonnull) selfIp camTopic:(NSString* _Nonnull) camTopic imuTopic:(NSString* _Nonnull) imuTopic gpsTopic:(NSString* _Nonnull) gpsTopic;
+- (void) setNeedPublishing: (bool) needPublishing;
 
 @end
 
