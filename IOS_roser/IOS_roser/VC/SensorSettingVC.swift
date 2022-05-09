@@ -17,7 +17,8 @@ private var lenPosCxt = 0
 private var shutterCxt = 0
 private var isoCxt = 0
 private let expPower: Double = 10.0  // for mapping shuttertime from linear to exponential
-private let imuHz = 0.01
+private let imuMaxHz = 300
+private let camMaxHz = 50
 
 final class SensorSettingVC: UIViewController {
     @IBOutlet var settingView: UIView!
@@ -29,6 +30,7 @@ final class SensorSettingVC: UIViewController {
     @IBOutlet weak var shutterSli: UISlider!
     @IBOutlet weak var isoSli: UISlider!
     @IBOutlet weak var imgHzText: UITextField!
+    @IBOutlet weak var imuHzText: UITextField!
     @IBOutlet weak var rosSettingStackView: UIStackView!
     @IBOutlet weak var cameraStackView: UIStackView!
     @IBOutlet weak var controlStackView: UIStackView!
@@ -60,6 +62,9 @@ final class SensorSettingVC: UIViewController {
         return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .unspecified)!
     } ()
 
+    private var imuHz: Int = 0
+    private var imgHz: Int = 0
+    
     private lazy var motionManager: CMMotionManager = {
         return CMMotionManager()
     } ()
@@ -102,6 +107,9 @@ final class SensorSettingVC: UIViewController {
         
         fileList.delegate = self
         fileList.dataSource = self
+        
+        imgHz = Int(imgHzText.text!)!
+        imuHz = Int(imuHzText.text!)!
     }
     
     @IBAction func touchDelAll(_ sender: Any) {
@@ -131,6 +139,9 @@ final class SensorSettingVC: UIViewController {
         }
         if UserDefaults.standard.string(forKey: "cam_hz") != nil {
             imgHzText.text = UserDefaults.standard.string(forKey: "cam_hz")
+        }
+        if UserDefaults.standard.string(forKey: "imu_hz") != nil {
+            imuHzText.text = UserDefaults.standard.string(forKey: "imu_hz")
         }
         if UserDefaults.standard.string(forKey: "cam_topic") != nil {
             camTopic.text = UserDefaults.standard.string(forKey: "cam_topic")
@@ -186,19 +197,45 @@ final class SensorSettingVC: UIViewController {
             setupEasyOneWithDelay(title: "hz range need to be a number", msg: "error!", delayToVanish: 2)
             return
         }
-        if val <= 30 && val >= 1 {
+        if val <= camMaxHz && val >= 1 {
             guard let _ = try? videoDevice.lockForConfiguration() else {
                 print(" can not lock configure to change framerate!\n")
                 return
             }
-            videoDevice.activeVideoMinFrameDuration = CMTimeMake(value: 1, timescale: Int32(val))
+            
+            imgHz = val
+            videoDevice.activeVideoMinFrameDuration = CMTimeMake(value: 1, timescale: Int32(imgHz))
             videoDevice.unlockForConfiguration()
  
         } else {
-            setupEasyOneWithDelay(title: "hz range in 1-30", msg: "error!", delayToVanish: 2)
+            setupEasyOneWithDelay(title: "hz range in 1-\(camMaxHz)", msg: "error!", delayToVanish: 2)
+            imgHz = camMaxHz
+            imgHzText.text = String(camMaxHz)
+        }
+        UserDefaults.standard.set(val, forKey: "cam_hz")
+    }
+    
+    @IBAction func changeImuHz(_ sender: Any) {
+        let val = Int(imuHzText.text ?? "")
+        guard let val = val else {
+            setupEasyOneWithDelay(title: "hz range need to be a number", msg: "error!", delayToVanish: 2)
             return
         }
+        if val <= imuMaxHz && val >= 1 {
+            guard let _ = try? videoDevice.lockForConfiguration() else {
+                print(" can not lock configure to change framerate!\n")
+                return
+            }
+            
+            imuHz = val
+        } else {
+            setupEasyOneWithDelay(title: "hz range in 1-\(imuMaxHz)", msg: "error!", delayToVanish: 2)
+            imuHz = imuMaxHz
+            imuHzText.text = String(imuMaxHz)
+        }
+        UserDefaults.standard.set(val, forKey: "imu_hz")
     }
+ 
     
     @IBAction func done(_ sender: UITextField) {
         sender.resignFirstResponder()
@@ -388,6 +425,10 @@ final class SensorSettingVC: UIViewController {
         locationManager.startUpdatingLocation()
         
         addObservers()
+        
+        imgHzText.isUserInteractionEnabled = false
+        imuHzText.isUserInteractionEnabled = false
+        camSizeBtn.isUserInteractionEnabled = false
     }
  
     public func stopSenor() {
@@ -396,6 +437,10 @@ final class SensorSettingVC: UIViewController {
         locationManager.stopUpdatingLocation()
         
         removeObservers()
+        
+        imgHzText.isUserInteractionEnabled = true
+        imuHzText.isUserInteractionEnabled = true
+        camSizeBtn.isUserInteractionEnabled = true
     }
     
     @IBAction func changeMasterIp(_ sender: Any) {
@@ -537,7 +582,7 @@ extension SensorSettingVC {
                     let topic = self.imuTopic.text!
                     if self.isRecordingBag || self.isPublishing {
                         sessionQueue.async {
-                            let imu_data = Imu_T(acc_x: acc_x, acc_y: acc_y, acc_z: acc_z, gyro_x: gyro_x, gyro_y: gyro_y, gyro_z: gyro_z, header_seq: count, timestamp: timestamp)
+                            let imu_data = Imu_T(acc_x: acc_x*9.8, acc_y: acc_y*9.8, acc_z: acc_z*9.8, gyro_x: gyro_x, gyro_y: gyro_y, gyro_z: gyro_z, header_seq: count, timestamp: timestamp)
                             self.publisher.publishImu(imu_data, topic: topic)
                         }
                     }
@@ -569,7 +614,7 @@ extension SensorSettingVC {
        
     private func startImuUpdate() {
         if (motionManager.isAccelerometerAvailable) {
-            motionManager.accelerometerUpdateInterval = imuHz
+            motionManager.accelerometerUpdateInterval = 1.0 / Double(imuHz)
             motionManager.startAccelerometerUpdates(to: retrieveQueue) {
                 (data, error) in if let data = data {
                     guard self.imuSwitch.isOn else {return}
@@ -578,7 +623,7 @@ extension SensorSettingVC {
             }
         }
         if (motionManager.isGyroAvailable) {
-            motionManager.gyroUpdateInterval = imuHz
+            motionManager.gyroUpdateInterval = 1.0 / Double(imuHz)
             motionManager.startGyroUpdates(to: retrieveQueue) {
                 (data, error) in if let data = data {
                     guard self.imuSwitch.isOn else {return}
