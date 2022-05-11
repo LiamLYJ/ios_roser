@@ -1,0 +1,6 @@
+[submodule "thirdparty/boost"]
+	path = thirdparty/boost
+	url = git@git-ext.axera-tech.com:liuyongjie/boost.git
+[submodule "thirdparty/opencv"]
+	path = thirdparty/opencv
+	url = git@git-ext.axera-tech.com:liuyongjie/opencv.git

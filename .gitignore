@@ -2,9 +2,8 @@
 build/
 
 boost/
-libboost.a
+opencv/
 
 lib/
 xcuserdata/
 
-opencv2.framework
